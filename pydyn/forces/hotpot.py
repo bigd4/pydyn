@@ -1,0 +1,53 @@
+import numpy as np
+import torch
+from .base import ForceModel
+import cupy as cp
+import torch.utils.dlpack as torch_dlpack
+
+
+# 你是真牛逼大发了，from是from，to也是from是吧，你妈的
+def cp_to_torch(x):
+    return torch_dlpack.from_dlpack(cp.from_dlpack(x))
+
+
+def torch_to_cp(x):
+    return cp.from_dlpack(torch_dlpack.to_dlpack(x))
+
+
+class MiaoForceModel(ForceModel):
+
+    def __init__(
+        self,
+        neighbor_list,
+        model_file: str = "model.pt",
+        spin: bool = False,
+        **kwargs,
+    ) -> None:
+        super().__init__()
+        self.model = torch.jit.load(model_file)
+        self.cutoff = float(self.model.cutoff.detach().cpu().numpy())
+        self.spin = spin
+        self.neighbor_list = neighbor_list
+
+    def compute(self, state, context, properties=["energy", "forces", "stress"]):
+        super().compute(state, context)
+        idx_i, idx_j, offset = self.neighbor_list.find_neighbor(state)
+
+        data = {
+            "atomic_number": cp_to_torch(state.atomic_number),
+            "idx_i": cp_to_torch(idx_i),
+            "idx_j": cp_to_torch(idx_j),
+            "coordinate": cp_to_torch(state.r).to(torch.float32),
+            "n_atoms": torch.tensor([state.N], dtype=torch.long, device="cuda"),
+            "offset": cp_to_torch(offset).to(torch.float32),
+            "scaling": torch.eye(3, dtype=torch.float32, device="cuda").view(1, 3, 3),
+            "batch": torch.zeros(state.N, dtype=torch.long, device="cuda"),
+            "volume": torch.tensor([state.volume], dtype=torch.long, device="cuda"),
+        }
+
+        data = self.model(data, properties, create_graph=False)
+
+        self.results["potential_energy"] = cp.asarray(data["energy_p"])[0]
+        self.results["forces"] = torch_to_cp(data["forces_p"]).astype(cp.float64)
+        stress = torch_to_cp(data["stress_p"]).astype(cp.float64)
+        self.results["virial"] = -state.volume * stress
