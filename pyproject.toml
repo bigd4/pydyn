@@ -1,6 +1,6 @@
 [build-system]
-requires = ["scikit-build-core>=0.8.0", "pybind11"]
-build-backend = "scikit_build_core.build"
+requires = ["setuptools>=61.0", "wheel", "cmake"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "pydyn"
@@ -11,17 +11,18 @@ readme = "README.md"
 
 
 dependencies = [
-    "ase>=3.22.1",
+    "ase",
     "cupy",        
     "torch",     
 ]
 
 
 [tool.scikit-build]
-# Where Python packages live
-packages = ["pydyn"]
-package-dir = { "" = "." }
+build-dir = "build"
+cmake = true
 
-# Build options
-wheel.install-dir = "pydyn/neighbors"
-cmake.source-dir = "pydyn/neighbors"
+[tool.setuptools]
+package-dir = {"" = "pydyn"}
+
+[tool.setuptools.packages.find]
+where = ["pydyn"]
