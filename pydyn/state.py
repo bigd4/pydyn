@@ -38,7 +38,7 @@ class State:
         self.p = cp.array(atoms.get_momenta())
         self.m = cp.array(atoms.get_masses())
         self.box = cp.array(atoms.get_cell())
-        self.atomic_number = atoms.get_atomic_numbers()
+        self.atomic_number = cp.array(atoms.get_atomic_numbers())
         self.pbc = atoms.get_pbc()
         return self
 

@@ -24,15 +24,15 @@ class MiaoForceModel(ForceModel):
         **kwargs,
     ) -> None:
         super().__init__()
-        self.model = torch.jit.load(model_file)
+        self.model = torch.jit.load(model_file).cuda()
         self.cutoff = float(self.model.cutoff.detach().cpu().numpy())
         self.spin = spin
         self.neighbor_list = neighbor_list
 
     def compute(self, state, context, properties=["energy", "forces", "stress"]):
-        super().compute(state, context)
+        if not self.need_compute(state, context):
+            return
         idx_i, idx_j, offset = self.neighbor_list.find_neighbor(state)
-
         data = {
             "atomic_number": cp_to_torch(state.atomic_number),
             "idx_i": cp_to_torch(idx_i),
@@ -42,12 +42,12 @@ class MiaoForceModel(ForceModel):
             "offset": cp_to_torch(offset).to(torch.float32),
             "scaling": torch.eye(3, dtype=torch.float32, device="cuda").view(1, 3, 3),
             "batch": torch.zeros(state.N, dtype=torch.long, device="cuda"),
-            "volume": torch.tensor([state.volume], dtype=torch.long, device="cuda"),
+            "volume": torch.tensor([state.volume.item()], dtype=torch.float32, device="cuda"),
         }
 
         data = self.model(data, properties, create_graph=False)
 
-        self.results["potential_energy"] = cp.asarray(data["energy_p"])[0]
+        self.results["potential_energy"] = torch_to_cp(data["energy_p"])[0].astype(cp.float64)
         self.results["forces"] = torch_to_cp(data["forces_p"]).astype(cp.float64)
         stress = torch_to_cp(data["stress_p"]).astype(cp.float64)
         self.results["virial"] = -state.volume * stress

@@ -10,7 +10,8 @@ class EMTForceModel(ForceModel):
         self.calculator = EMT()
 
     def compute(self, state, context):
-        super().compute(state, context)
+        if not self.need_compute(state, context):
+            return
         atoms = state.to_atoms()
         atoms.calc = self.calculator
         self.results["potential_energy"] = cp.array(atoms.get_potential_energy())

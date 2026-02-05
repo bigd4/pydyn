@@ -1,7 +1,6 @@
 nvcc -O3 -std=c++14 -Xcompiler -fPIC \
-    -I/home/gegejun/anaconda3/envs/gpu/lib/python3.9/site-packages/pybind11/include\
-    -I/home/gegejun/anaconda3/envs/gpu/include/python3.9 \
     -I/fs08/home/js_wangjj/src/anaconda3/envs/lightning/include/python3.9 \
+    -I/fs08/home/js_wangjj/src/anaconda3/envs/lightning/lib/python3.9/site-packages/pybind11/include \
     -I/usr/local/cuda/include \
     -shared box.cu neighbor.cu -o libneighbor.so \
     -lcudart

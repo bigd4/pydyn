@@ -1,7 +1,7 @@
 import cupy as cp
 import numpy as np
 from ase.io import write
-
+from datetime import datetime
 
 class Observer:
     def __init__(self, interval=1):
@@ -32,7 +32,7 @@ class LogThermol(Observer):
     def initialize(self):
         super().initialize()
         self.file = open(self.filename, "w")
-        header = "Step\t" + "\t".join(self.quantities.keys()) + "\n"
+        header = "Time\t" + "Step\t" + "\t".join(self.quantities.keys()) + "\n"
         self.file.write(header)
 
     def observe(self, sim):
@@ -43,8 +43,8 @@ class LogThermol(Observer):
             if isinstance(val, cp.ndarray):
                 val = float(val)
             values.append(val)
-
-        line = f"{sim.step_count}\t" + "\t".join(f"{v:.6e}" for v in values) + "\n"
+        time = datetime.now().strftime("%H:%M:%S")
+        line = f"{time}\t {sim.step_count}\t" + "\t".join(f"{v:.6e}" for v in values) + "\n"
         self.file.write(line)
         self.file.flush()
 
