@@ -42,12 +42,16 @@ class MiaoForceModel(ForceModel):
             "offset": cp_to_torch(offset).to(torch.float32),
             "scaling": torch.eye(3, dtype=torch.float32, device="cuda").view(1, 3, 3),
             "batch": torch.zeros(state.N, dtype=torch.long, device="cuda"),
-            "volume": torch.tensor([state.volume.item()], dtype=torch.float32, device="cuda"),
+            "volume": torch.tensor(
+                [state.volume.item()], dtype=torch.float32, device="cuda"
+            ),
         }
 
         data = self.model(data, properties, create_graph=False)
 
-        self.results["potential_energy"] = torch_to_cp(data["energy_p"])[0].astype(cp.float64)
+        self.results["potential_energy"] = torch_to_cp(data["energy_p"])[0].astype(
+            cp.float64
+        )
         self.results["forces"] = torch_to_cp(data["forces_p"]).astype(cp.float64)
         stress = torch_to_cp(data["stress_p"]).astype(cp.float64)
         self.results["virial"] = -state.volume * stress

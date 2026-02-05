@@ -23,12 +23,6 @@
 #include <thrust/execution_policy.h>
 #include <thrust/scan.h>
 #include <cstring>
-#include <pybind11/pybind11.h>
-#include <pybind11/cast.h>
-#include <pybind11/stl.h>
-
-namespace py = pybind11;
-
 
 
 static __global__ void find_cell_counts(
@@ -299,15 +293,4 @@ int NeighborList::find_neighbor(uintptr_t x_ptr, uintptr_t y_ptr, uintptr_t z_pt
     N_neighbor = thrust::reduce(thrust::device, d_NN, d_NN + N, 0, thrust::plus<int>());
     return N_neighbor;
     //return 0;
-}
-
-
-PYBIND11_MODULE(libneighbor, m) {
-    py::class_<NeighborList>(m, "NeighborList")
-        .def(py::init<int, int, float>())
-        .def("update_box", &NeighborList::update_box)
-        .def("find_neighbor", &NeighborList::find_neighbor)
-        .def("find_cell_list", &NeighborList::find_cell_list)
-        .def("convert_ijS", &NeighborList::convert_ijS)
-        .def_readonly("N_neighbor", &NeighborList::N_neighbor);
 }

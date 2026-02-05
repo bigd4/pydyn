@@ -4,12 +4,9 @@ test/
 .vs
 .history
 .VSCodeCounter
-examples/*
-!examples/*.py
-!examples/C_2022_NEP3.txt
-!examples/data.traj
-!examples/PbTe.in
-interface/lammps/USER-NEP/nep.*
+examples/*/log.txt
+examples/*/trajectory.xyz
+pydyn/neighbors/build
 # tex info
 /docs/**/*
 !/docs/requirements.txt
