@@ -46,6 +46,8 @@ class MiaoForceModel(ForceModel):
                 [state.volume.item()], dtype=torch.float32, device="cuda"
             ),
         }
+        if self.spin:
+            data["spin"] = cp_to_torch(state.spins).to(torch.float32)
 
         data = self.model(data, properties, create_graph=False)
 
@@ -55,3 +57,8 @@ class MiaoForceModel(ForceModel):
         self.results["forces"] = torch_to_cp(data["forces_p"]).astype(cp.float64)
         stress = torch_to_cp(data["stress_p"]).astype(cp.float64)
         self.results["virial"] = -state.volume * stress
+
+        if "magnetic_forces" in properties:
+            self.results["magnetic_forces"] = torch_to_cp(
+                data["magnetic_forces_p"]
+            ).astype(cp.float64)

@@ -64,7 +64,7 @@ class State:
         return True
 
     def copy(self):
-        new_state = State(
+        new_state = self.__class__(
             r=self.r.copy() if self.r is not None else None,
             p=self.p.copy() if self.p is not None else None,
             m=self.m.copy() if self.m is not None else None,
@@ -74,4 +74,39 @@ class State:
             ),
             pbc=self.pbc.copy() if self.pbc is not None else None,
         )
+        return new_state
+
+
+class SpinState(State):
+    def __init__(
+        self, r=None, p=None, m=None, box=None, atomic_number=None, pbc=None, spins=None
+    ):
+        super().__init__(r, p, m, box, atomic_number, pbc)
+        self.spins = spins
+
+    @property
+    def mu_i(self):
+        mu_i = cp.linalg.norm(self.spins, axis=1)
+        return mu_i
+
+    def from_atoms(self, atoms):
+        super().from_atoms(atoms)
+        self.spins = cp.array(
+            atoms.info["spins"]
+        )  # assuming initial magnetic moments are provided
+        return self
+
+    def to_atoms(self):
+        atoms = super().to_atoms()
+        atoms.info["spins"] = cp.asnumpy(self.spins)
+        return atoms
+
+    def configure_same_as(self, state2):
+        if not super().configure_same_as(state2):
+            return False
+        return cp.allclose(self.spins, state2.spins, atol=1e-7)
+
+    def copy(self):
+        new_state = super().copy()
+        new_state.spins = self.spins.copy() if self.spins is not None else None
         return new_state
