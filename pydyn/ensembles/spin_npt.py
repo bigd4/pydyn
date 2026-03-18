@@ -82,8 +82,8 @@ class SIBSpinOp(Operator):
 
     def calc_omega(self, state, context, noise):
 
-        self.force_model.compute(state, context, property=["magnetic_forces"])
-        B_eff = self.force_model.results["magnetic_forces"]
+        self.force_model.compute(state, context, properties=["spin_torques"])
+        B_eff = self.force_model.results["spin_torques"]
         omega = (
             self.drift_prefactor[:, None]
             * (B_eff + cp.cross(state.spins, B_eff) * self.alpha_t)
@@ -125,11 +125,30 @@ class SpinMTTKNPT(Ensemble):
         )  # in GPa
         return float(pressure)
 
-    # def get_spin_temperature(self, spins):
-    #     self.calculate(spins)
-    #     B_eff = self.results["spin_torques"]
-    #     return (
-    #         cp.sum(cp.linalg.norm(cp.cross(spins, B_eff), axis=1) ** 2)
-    #         / cp.sum(spins * B_eff)
-    #         / (2 * kb)
-    #     )
+    def get_spin_temperature(self, state, context):
+        self.force_model.compute(state, context, properties=["spin_torques"])
+        B_eff = self.force_model.results["spin_torques"]
+        spin_temp = (
+            cp.sum(cp.linalg.norm(cp.cross(state.spins, B_eff), axis=1) ** 2)
+             / cp.sum(state.spins * B_eff)
+             / (2 * Constants.kB)
+        )
+        return spin_temp
+
+class SpinGoGoGo(Ensemble):
+
+    def __init__(self, force_model):
+        self.force_model = force_model
+        self.op_list = [
+            (SIBSpinOp(force_model), 1.0),
+        ]
+
+    def get_spin_temperature(self, state, context):
+        self.force_model.compute(state, context, properties=["spin_torques"])
+        B_eff = self.force_model.results["spin_torques"]
+        spin_temp = (
+            cp.sum(cp.linalg.norm(cp.cross(state.spins, B_eff), axis=1) ** 2)
+             / cp.sum(state.spins * B_eff)
+             / (2 * Constants.kB)
+        )
+        return spin_temp

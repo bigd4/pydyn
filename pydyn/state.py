@@ -92,13 +92,13 @@ class SpinState(State):
     def from_atoms(self, atoms):
         super().from_atoms(atoms)
         self.spins = cp.array(
-            atoms.info["spins"]
+            atoms.info["spin"]
         )  # assuming initial magnetic moments are provided
         return self
 
     def to_atoms(self):
         atoms = super().to_atoms()
-        atoms.info["spins"] = cp.asnumpy(self.spins)
+        atoms.info["spin"] = cp.asnumpy(self.spins)
         return atoms
 
     def configure_same_as(self, state2):
