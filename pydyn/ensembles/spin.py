@@ -88,8 +88,8 @@ class SIBSpinOp(Operator):
 
 class SpinLLG(Ensemble):
 
-    def __init__(self, force_model):
+    def __init__(self, force_model, alpha_t=0.1):
         self.force_model = force_model
         self.op_list = [
-            (SIBSpinOp(force_model), 1.0),
+            (SIBSpinOp(force_model, alpha_t), 1.0),
         ]

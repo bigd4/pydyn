@@ -136,7 +136,7 @@ class SpinExtension(Extension):
             return None
         return self.vector * self.magnitude[:, None]
 
-    @property.setter
+    @spins.setter
     def spins(self, spins):
         if spins is not None:
             self.magnitude = cp.linalg.norm(spins, axis=1)
@@ -149,7 +149,7 @@ class SpinExtension(Extension):
     def magnetic_moment(self):
         if self.spins is None:
             return None
-        return cp.sum(self.spins, axis=0) * cp.sum(self.magnitude)
+        return cp.sum(self.spins, axis=0) / cp.sum(self.magnitude)
 
     def from_atoms(self, atoms):
         self.spins = cp.array(atoms.info["spin"])
