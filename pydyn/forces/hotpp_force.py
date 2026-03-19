@@ -47,7 +47,7 @@ class MiaoForceModel(ForceModel):
             ),
         }
         if self.spin:
-            data["spin"] = cp_to_torch(state.spins).to(torch.float32)
+            data["spin"] = cp_to_torch(state.spin.spins).to(torch.float32)
 
         data = self.model(data, properties, create_graph=False)
         if "energy" in properties:
@@ -57,11 +57,11 @@ class MiaoForceModel(ForceModel):
         if "forces" in properties:
             self.results["forces"] = torch_to_cp(data["forces_p"]).astype(cp.float64)
         if "virial" in properties:
-            #stress = torch_to_cp(data["stress_p"][0]).astype(cp.float64)
-            #self.results["virial"] = -state.volume * stress
+            # stress = torch_to_cp(data["stress_p"][0]).astype(cp.float64)
+            # self.results["virial"] = -state.volume * stress
             self.results["virial"] = torch_to_cp(data["virial_p"][0]).astype(cp.float64)
 
         if "spin_torques" in properties:
-            self.results["spin_torques"] = torch_to_cp(
-                data["spin_torques_p"]
-            ).astype(cp.float64)
+            self.results["spin_torques"] = torch_to_cp(data["spin_torques_p"]).astype(
+                cp.float64
+            )
