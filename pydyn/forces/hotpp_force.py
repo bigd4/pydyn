@@ -29,8 +29,8 @@ class MiaoForceModel(ForceModel):
         self.spin = spin
         self.neighbor_list = neighbor_list
 
-    def compute(self, state, context, properties=["energy", "forces", "stress"]):
-        if not self.need_compute(state, context):
+    def compute(self, state, context, properties=["energy", "forces", "virial"]):
+        if not self.need_compute(state, context, properties):
             return
         idx_i, idx_j, offset = self.neighbor_list.find_neighbor(state)
         data = {
@@ -46,12 +46,22 @@ class MiaoForceModel(ForceModel):
                 [state.volume.item()], dtype=torch.float32, device="cuda"
             ),
         }
+        if self.spin:
+            data["spin"] = cp_to_torch(state.spin.spins).to(torch.float32)
 
         data = self.model(data, properties, create_graph=False)
+        if "energy" in properties:
+            self.results["potential_energy"] = torch_to_cp(data["energy_p"][0]).astype(
+                cp.float64
+            )
+        if "forces" in properties:
+            self.results["forces"] = torch_to_cp(data["forces_p"]).astype(cp.float64)
+        if "virial" in properties:
+            # stress = torch_to_cp(data["stress_p"][0]).astype(cp.float64)
+            # self.results["virial"] = -state.volume * stress
+            self.results["virial"] = torch_to_cp(data["virial_p"][0]).astype(cp.float64)
 
-        self.results["potential_energy"] = torch_to_cp(data["energy_p"])[0].astype(
-            cp.float64
-        )
-        self.results["forces"] = torch_to_cp(data["forces_p"]).astype(cp.float64)
-        stress = torch_to_cp(data["stress_p"]).astype(cp.float64)
-        self.results["virial"] = -state.volume * stress
+        if "spin_torques" in properties:
+            self.results["spin_torques"] = torch_to_cp(data["spin_torques_p"]).astype(
+                cp.float64
+            )

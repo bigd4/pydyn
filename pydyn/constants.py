@@ -5,6 +5,7 @@ class Constants:
     mu_B = 5.7883817555e-5  # The Bohr Magneton [eV/T]
     mu_0 = 2.0133545 * 1e-25  # The vacuum permeability [T^2 m^3 / eV]
     gamma = 0.1760859644  # Gyromagnetic ratio of electron [rad/(ps*T)]
+
     kB = 8.617333262145e-5  # Boltzmann constant [eV/K]
     hplanck = 4.13566733e-3  # [eV*ps]
     hbar = hplanck / (2 * pi)  # [eV*ps]
