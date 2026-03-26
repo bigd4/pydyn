@@ -54,5 +54,7 @@ class Simulation:
     def run(self, nsteps):
         for _ in range(nsteps):
             self.step()
+
+    def finalize(self):
         for obs in self.observers:
             obs.finalize()

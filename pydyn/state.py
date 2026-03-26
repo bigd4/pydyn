@@ -168,8 +168,8 @@ class SpinExtension(Extension):
         force_model.compute(state, context, properties=["spin_torques"])
         B_eff = force_model.results["spin_torques"]
         spin_temp = (
-            cp.sum(cp.linalg.norm(cp.cross(self.spins, B_eff), axis=1) ** 2)
-            / cp.sum(self.spins * B_eff)
+            cp.sum(cp.linalg.norm(cp.cross(self.vector, B_eff), axis=1) ** 2)
+            / cp.sum(self.vector * B_eff)
             / (2 * Constants.kB)
         )
         return spin_temp
