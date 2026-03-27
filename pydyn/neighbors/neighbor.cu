@@ -163,18 +163,28 @@ __global__ void gpu_find_neighbor_ON1(
 NeighborList::NeighborList(int _N, int _MN, float _rc)
     : N(_N), MN(_MN), rc(_rc), rc_inv(1.0f / _rc)  {
     box = {};
-    cudaMalloc((void**)&d_cell_contents, N * sizeof(int));
-    cudaMalloc((void**)&d_NN, N * sizeof(int));
-    cudaMalloc((void**)&d_NN_sum, N * sizeof(int));
-    cudaMalloc((void**)&d_NL, N * MN * sizeof(int));
-    cudaMalloc((void**)&d_Noffset, N * MN * 3 * sizeof(float));
+    CHECK(cudaMalloc((void**)&d_cell_contents, N * sizeof(int)));
+    CHECK(cudaMalloc((void**)&d_NN, N * sizeof(int)));
+    CHECK(cudaMalloc((void**)&d_NN_sum, N * sizeof(int)));
+    CHECK(cudaMalloc((void**)&d_NL, N * MN * sizeof(int)));
+    CHECK(cudaMalloc((void**)&d_Noffset, N * MN * 3 * sizeof(float)));
     N_neighbor = 0;
     //cudaMalloc((void**)&d_idx_i, N * MN * sizeof(int));
     //cudaMalloc((void**)&d_idx_j, N * MN * sizeof(int));
     //cudaMalloc((void**)&d_offset, N * MN * 3 * sizeof(float));
     N_cell = 0;
-    cudaMalloc(&d_cell_count, N_cell * sizeof(int));
-    cudaMalloc(&d_cell_count_sum, N_cell * sizeof(int));
+    CHECK(cudaMalloc(&d_cell_count, N_cell * sizeof(int)));
+    CHECK(cudaMalloc(&d_cell_count_sum, N_cell * sizeof(int)));
+}
+
+NeighborList::~NeighborList() {
+    cudaFree(d_cell_contents);
+    cudaFree(d_NN);
+    cudaFree(d_NN_sum);
+    cudaFree(d_NL);
+    cudaFree(d_Noffset);
+    cudaFree(d_cell_count);
+    cudaFree(d_cell_count_sum);
 }
 
 void NeighborList::update_box(std::vector<float> h, bool pbc_x, bool pbc_y, bool pbc_z) {

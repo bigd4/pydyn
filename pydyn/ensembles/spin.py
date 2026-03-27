@@ -1,4 +1,8 @@
-# https://www.lammps.org/workshops/Aug17/pdf/tranchida.pdf
+"""Spin dynamics integration scheme for magnetic systems.
+用于磁性系统的自旋动力学积分方案。
+
+Reference: https://www.lammps.org/workshops/Aug17/pdf/tranchida.pdf
+"""
 
 import cupy as cp
 from .base import Ensemble, Operator
@@ -6,9 +10,10 @@ from ..constants import Constants
 
 
 def sib_transform(spins, omegas):
-    """
-    DOI: 10.1103/PhysRevB.99.224414
-    Perform the SIB (Semi-Implicit B) spin update.
+    """Semi-Implicit B (SIB) spin update step.
+    半隐式B（SIB）自旋更新步骤。
+
+    Reference: DOI: 10.1103/PhysRevB.99.224414
     n^p_i = n_i - (n_i + n^p_i) / 2 x (omegas_i)
     """
     A = 0.5 * omegas  # shape (n,3)
@@ -35,6 +40,9 @@ def sib_transform(spins, omegas):
 
 
 class SIBSpinOp(Operator):
+    """Spin update operator using Landau-Lifshitz-Gilbert equation.
+    使用Landau-Lifshitz-Gilbert方程的自旋更新算子。
+    """
 
     def __init__(
         self,
@@ -55,7 +63,8 @@ class SIBSpinOp(Operator):
         )  # no mu_i, kT, and dt
 
     def apply(self, state, context, dt):
-        """
+        """Update spins using semi-implicit integrator with thermal noise.
+        使用带热噪声的半隐式积分器更新自旋。
         sp_t - s_t = (sp_t + s_t) / 2 * omega
         s_t+1 - s_t = (s_t + s_t+1) / 2 * omega
         omega = dt * (B_eff + alpha * s x B_eff) + sqrt(dt) * noise
@@ -75,7 +84,9 @@ class SIBSpinOp(Operator):
         state.spin.vector = sib_transform(state.spin.vector, omega)
 
     def calc_omega(self, state, context, noise):
-
+        """Calculate effective magnetic field and precession frequency.
+        计算有效磁场和进动频率。
+        """
         self.force_model.compute(state, context, properties=["spin_torques"])
         B_eff = self.force_model.results["spin_torques"]
         omega = (
@@ -87,6 +98,9 @@ class SIBSpinOp(Operator):
 
 
 class SpinLLG(Ensemble):
+    """Spin dynamics ensemble using Landau-Lifshitz-Gilbert equation.
+    使用Landau-Lifshitz-Gilbert方程的自旋动力学系综。
+    """
 
     def __init__(self, force_model, alpha_t=0.1):
         self.force_model = force_model
