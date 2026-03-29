@@ -11,9 +11,11 @@ Medium Theory) and HOTPP (High-Order Three-Body Potential) force models.
 from .base import ForceModel
 from .emt_force import EMTForceModel
 from .hotpp_force import MiaoForceModel
+from .heisenberg_force import HeisenbergForceModel
 
 __all__ = [
     "ForceModel",
     "EMTForceModel",
     "MiaoForceModel",
+    "HeisenbergForceModel",
 ]
