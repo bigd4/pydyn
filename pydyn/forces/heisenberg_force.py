@@ -14,6 +14,7 @@ Reference:
 """
 
 import cupy as cp
+import cupyx
 from typing import Optional, List, Tuple
 from .base import ForceModel
 
@@ -121,15 +122,9 @@ class HeisenbergForceModel(ForceModel):
         # Compute effective magnetic field (spin torque): B_i = J * Σ_j S_j
         # 计算有效磁场（自旋扭矩）
         spin_torques = cp.zeros((N, 3), dtype=cp.float64)
-        
+
         if len(idx_i) > 0:
-            # Vectorized neighbor sum
-            # 向量化近邻求和
-            for i in range(N):
-                neighbors = idx_j[idx_i == i]
-                if len(neighbors) > 0:
-                    spin_torques[i] = self.J * cp.sum(spins[neighbors], axis=0)
-        
+            cupyx.scatter_add(spin_torques, idx_i, self.J * spins[idx_j])
         # Compute total energy: E = -J * Σ_{<i,j>} S_i · S_j
         # Each pair (i,j) with i < j is counted once
         # 计算总能量

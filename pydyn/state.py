@@ -134,31 +134,6 @@ class State:
         """
         return name in self._extensions
 
-    def __getattr__(self, name: str) -> Any:
-        """Override attribute access to support extension lookup.
-        重写属性访问以支持扩展查找。
-
-        Allows accessing extensions via attribute notation for backward
-        compatibility while delegating to the registry.
-        / 允许通过属性符号访问扩展以实现向后兼容性，
-        同时委托给注册表。
-
-        Args:
-            name: Attribute name. / 属性名。
-
-        Returns:
-            The extension if found in registry. / 如果在注册表中找到扩展。
-
-        Raises:
-            AttributeError: If attribute not found.
-                / 如果找不到属性，则引发 AttributeError。
-        """
-        if name.startswith("_"):
-            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-        if "_extensions" in self.__dict__ and name in self.__dict__["_extensions"]:
-            return self.__dict__["_extensions"][name]
-        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-
     def add_component(self, component: Any, descriptor: Optional[str] = None) -> None:
         """Add an extension component to the state.
         向状态添加扩展组件。
