@@ -5,7 +5,6 @@ import cupy as cp
 import torch.utils.dlpack as torch_dlpack
 
 
-# 你是真牛逼大发了，from是from，to也是from是吧，你妈的
 def cp_to_torch(x):
     return torch_dlpack.from_dlpack(cp.from_dlpack(x))
 

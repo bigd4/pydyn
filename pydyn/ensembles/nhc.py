@@ -1,16 +1,25 @@
+"""Nosé-Hoover chain thermostat and MTTK barostat operators.
+Nosé-Hoover链温控器和MTTK气压调节器算子。
+
+Implements:
+- Nosé-Hoover chain thermostat for NVT control
+- MTTK NPT barostat for simultaneous T and P control
+"""
+
 from .base import Ensemble, Operator
 import cupy as cp
 from ..constants import Constants
 from ..state import MTTKBarostatExtension, NHThermostatExtension
 
 """
-nose hoove chain:
+Nosé-Hoover chain update:
 p_chain[j] ← exp(−ξ[j+1]) · (p_chain[j] + Δt·g_j) · exp(−ξ[j+1])
-Thermostat	          Barostat
-eta, p_eta, Q	      xi, p_xi, R
-p                     box_p
-sum(p^2/m)	          sum(box_p^2)/W  lammps use different W
-dof * kT (3NkT)	      cell_dof * kT (9kT)
+
+Thermostat (NVT):          Barostat (NPT):
+eta, p_eta, Q              xi, p_xi, R
+p (atomic momenta)         box_p (cell momenta)
+sum(p^2/m)                 sum(box_p^2)/W
+dof * kT (3NkT)            cell_dof * kT (9kT)
 """
 
 FOURTH_ORDER_COEFFS = cp.array(
@@ -23,9 +32,8 @@ FOURTH_ORDER_COEFFS = cp.array(
 
 
 class MTTKNPTBarostatOp(Operator):
-    """
-    MTTK NPT Barostat Operator (full anisotropic, multi-chain)
-    Updates atomic momenta and box according to target pressure.
+    """MTTK (Martyna-Tobias-Tuckerman-Klein) anisotropic barostat.
+    MTTK各向异性气压调节器。
     """
 
     def __init__(self, t_tau, pchain=3, ploop=1):
@@ -34,7 +42,8 @@ class MTTKNPTBarostatOp(Operator):
         self.ploop = ploop  # number of subloops for 4th-order integrator
 
     def extend_state(self, state, context):
-        """
+        """Extend state with barostat variables.
+        用气压调节器变量扩展状态。
         state: requires
             - p: atomic momenta, (N,3)                         [amu*A/ps]
             - box: cell vectors, (3,3)                         [A]
@@ -67,6 +76,9 @@ class MTTKNPTBarostatOp(Operator):
         state.add_component(barostat)
 
     def apply(self, state, context, dt):
+        """Apply barostat update with 4th-order integration.
+        应用4阶积分的气压调节器更新。
+        """
         # 4th-order loop
         for _ in range(self.ploop):
             for coeff in FOURTH_ORDER_COEFFS:
@@ -74,6 +86,9 @@ class MTTKNPTBarostatOp(Operator):
                 self._integrate_step(state, context, dt_sub)
 
     def _integrate_step(self, state, context, dt):
+        """Execute one sub-step of barostat integration.
+        执行气压调节器积分的一个子步。
+        """
         dt2 = dt / 2
         dt4 = dt / 4
 
@@ -94,6 +109,9 @@ class MTTKNPTBarostatOp(Operator):
             self._integrate_p_xi_j(state, context, j, dt2, dt4)
 
     def _integrate_p_xi_j(self, state, context, j, dt2, dt4):
+        """Integrate barostat chain momentum at position j.
+        在位置j积分气压调节器链的动量。
+        """
         kT = Constants.kB * context.target_temp  # eV
         state.mttk_barostat.p_xi[j] *= cp.exp(
             -dt4 * state.mttk_barostat.p_xi[j + 1] / state.mttk_barostat.R[j + 1]
@@ -112,8 +130,8 @@ class MTTKNPTBarostatOp(Operator):
 
 
 class NoseHooverChainThermostatOp(Operator):
-    """
-    Nose-Hoover Chain Thermostat Operator (NVT part)
+    """Nosé-Hoover chain thermostat for constant temperature.
+    用于恒定温度的Nosé-Hoover链温控器。
     """
 
     def __init__(self, t_tau, tchain=3, tloop=1):
@@ -122,9 +140,8 @@ class NoseHooverChainThermostatOp(Operator):
         self.tloop = tloop
 
     def extend_state(self, state, context):
-        """
-        Extend state with thermostat variables
-
+        """Extend state with thermostat variables.
+        用温控器变量扩展状态。
         requires:
             - p: atomic momenta, (N,3)
             - masses: atomic masses, (N,)
@@ -133,15 +150,16 @@ class NoseHooverChainThermostatOp(Operator):
             - eta: thermostat chain positions, (tchain,)         # [unitless]
             - p_eta: thermostat chain momenta, (tchain,)         # [eV*ps]
             - Q: thermostat chain masses, (tchain,)              # [eV*ps^2]
-
         """
-
         if "nh_thermostat" in state.components:
             return  # already extended
         kT = Constants.kB * context.target_temp
 
+        # Calculate degrees of freedom accounting for constraints
+        tdof = 3 * state.N - sum(c.removed_dof for c in context.constraints)
+
         Q = cp.zeros(self.tchain + 1)
-        Q[0] = 3 * state.N * kT * self.t_tau**2
+        Q[0] = tdof * kT * self.t_tau**2
         Q[1:-1] = kT * self.t_tau**2
         Q[-1] = 1.0
 
@@ -152,12 +170,18 @@ class NoseHooverChainThermostatOp(Operator):
         state.add_component(thermostat)
 
     def apply(self, state, context, dt):
+        """Apply thermostat update with 4th-order integration.
+        应用4阶积分的温控器更新。
+        """
         for _ in range(self.tloop):
             for coeff in FOURTH_ORDER_COEFFS:
                 dt_sub = coeff * dt / self.tloop
                 self._integrate_step(state, context, dt_sub)
 
     def _integrate_step(self, state, context, dt):
+        """Execute one sub-step of thermostat integration.
+        执行温控器积分的一个子步。
+        """
         dt2 = dt / 2
         dt4 = dt / 4
         ke_current = cp.sum(state.p**2 / state.m[:, None]) * Constants.mv2_to_e  # eV
@@ -178,14 +202,18 @@ class NoseHooverChainThermostatOp(Operator):
             self._integrate_p_eta_j(state, context, ke_current, j, dt2, dt4)
 
     def _integrate_p_eta_j(self, state, context, ke_current, j, dt2, dt4):
+        """Integrate thermostat chain momentum at position j.
+        在位置j积分温控器链的动量。
+        """
         kT = Constants.kB * context.target_temp
         state.thermostat.p_eta[j] *= cp.exp(
             -dt4 * state.thermostat.p_eta[j + 1] / state.thermostat.Q[j + 1]
         )
-        # j=0处和动量耦合，j>0处和前一级链耦合
+        # j=0: coupled to atomic momentum; j>0: coupled to previous chain level
         if j == 0:
-            # TODO: 3N -> tdof
-            g_j = ke_current - 3 * state.N * kT
+            # Calculate degrees of freedom accounting for constraints
+            tdof = 3 * state.N - sum(c.removed_dof for c in context.constraints)
+            g_j = ke_current - tdof * kT
         else:
             g_j = (
                 state.thermostat.p_eta[j - 1] ** 2 / state.thermostat.Q[j - 1] - kT

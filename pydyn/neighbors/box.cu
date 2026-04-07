@@ -45,7 +45,7 @@ void Box::find_inv(void) {
     h_inv[6] = h[3] * h[7] - h[4] * h[6];
     h_inv[7] = h[1] * h[6] - h[0] * h[7];
     h_inv[8] = h[0] * h[4] - h[1] * h[3];
-    for (int n = 9; n < 18; n++)  h[n] *= v_inv;
+    for (int n = 0; n < 9; n++)  h_inv[n] *= v_inv;
 }
 
 
