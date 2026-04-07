@@ -9,8 +9,8 @@ class EMTForceModel(ForceModel):
         super().__init__()
         self.calculator = EMT()
 
-    def compute(self, state, context):
-        if not self.need_compute(state, context):
+    def compute(self, state, context, properties=["energy", "forces", "virial"]):
+        if not self.need_compute(state, context, properties):
             return
         atoms = state.to_atoms()
         atoms.calc = self.calculator

@@ -1,3 +1,6 @@
+"""Spin dynamics with NPT (isothermal-isobaric) ensemble.
+自旋动力学与NPT（等温等压）系综。
+"""
 from .base import Ensemble
 import cupy as cp
 from ..constants import Constants
@@ -10,7 +13,9 @@ from .spin import SIBSpinOp
 
 
 class SpinMTTKNPT(Ensemble):
-
+    """NPT ensemble for magnetic systems with MTTK barostat.
+    用于磁性系统的MTTK气压调节器NPT系综。
+    """
     def __init__(self, t_tau, p_tau, force_model):
         self.force_model = force_model
         self.t_tau = t_tau
@@ -31,6 +36,9 @@ class SpinMTTKNPT(Ensemble):
         ]
 
     def get_pressure(self, state, context):
+        """Calculate instantaneous pressure from virial.
+        从维里定理计算瞬时压力。
+        """
         self.force_model.compute(state, context)
         virial = self.force_model.results["virial"]
         kinetic_virial = (
@@ -43,6 +51,9 @@ class SpinMTTKNPT(Ensemble):
         return float(pressure)
 
     def get_spin_temperature(self, state, context):
+        """Calculate effective temperature from spin dynamics.
+        从自旋动力学计算有效温度。
+        """
         self.force_model.compute(state, context, properties=["spin_torques"])
         B_eff = self.force_model.results["spin_torques"]
         spin_temp = (

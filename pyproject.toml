@@ -6,23 +6,15 @@ build-backend = "setuptools.build_meta"
 name = "pydyn"
 version = "0.1.0"
 requires-python = ">=3.8"
-description = "Python dynamics with CUDA neighbor search"
+description = "GPU-accelerated molecular dynamics simulation with CUDA neighbor search"
 readme = "README.md"
 
-
 dependencies = [
-    "ase",
-    "cupy",        
-    "torch",     
+    "ase>=3.20",
+    "cupy>=11.0",
+    "torch>=1.9",
+    "scipy>=1.5",
 ]
 
-
-[tool.scikit-build]
-build-dir = "build"
-cmake = true
-
 [tool.setuptools]
-package-dir = {"" = "pydyn"}
-
-[tool.setuptools.packages.find]
-where = ["pydyn"]
+packages = ["pydyn"]

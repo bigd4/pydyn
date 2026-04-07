@@ -69,6 +69,7 @@ static __device__ CellIndex find_cell_id(
 class NeighborList {
 public:
     NeighborList(int _N, int _MN, float _rc);
+    ~NeighborList();
     void update_box(std::vector<float> h, bool pbc_x, bool pbc_y, bool pbc_z);
     int find_neighbor(uintptr_t x_ptr, uintptr_t y_ptr, uintptr_t z_ptr);
     void find_cell_list(const float* d_x, const float* d_y, const float* d_z);

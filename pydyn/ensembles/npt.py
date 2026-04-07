@@ -1,3 +1,7 @@
+"""NPT (isotherm-isobaric) ensemble implementations.
+NPT（等温等压）系综实现。
+"""
+
 from .base import Ensemble, Operator
 import cupy as cp
 from ..constants import Constants
@@ -14,6 +18,8 @@ def solve_linear_evolution(A, X, dt, b=None):
     X(t+dt) = exp(A*dt) * X(t) + (I-exp(A*dt)) / A * b
             = exp(A*dt) * X(t) + exprel(A*dt) * b * dt
     """
+    # Symmetrize to handle numerical asymmetry
+    A = 0.5 * (A + A.T)
     eigvals, U = cp.linalg.eigh(A)
     sol = (X @ U) * cp.exp(eigvals * dt)[None, :]
     if b is not None:
@@ -22,19 +28,27 @@ def solve_linear_evolution(A, X, dt, b=None):
 
 
 class BoxOp(Operator):
+    """Box (cell) update operator for NPT ensemble.
+    用于NPT系综的晶胞更新算子。
+    """
 
     def apply(self, state, context, dt):
-        """
-        box' = box_p / W · box
+        """Update cell vectors according to box momentum.
+        根据晶胞动量更新晶胞矢量。
+        d_box/dt = box_p / W · box
         """
         state.box = solve_linear_evolution(state.box_p / state.W, state.box, dt)
 
 
 class PositionOp(Operator):
+    """Position update with box deformation in NPT ensemble.
+    NPT系综中带有晶胞变形的位置更新算子。
+    """
 
     def apply(self, state, context, dt):
-        """
-        r' = p/m + box_p / W · r
+        """Update positions with box scaling effects.
+        更新位置并考虑晶胞缩放效应。
+        dr/dt = p/m + box_p / W · r
         """
         state.r = solve_linear_evolution(
             state.box_p / state.W, state.r, dt, state.p / state.m[:, None]
@@ -42,12 +56,17 @@ class PositionOp(Operator):
 
 
 class BoxMomentumOp(Operator):
+    """Box momentum update operator for barostat.
+    气压调节器的晶胞动量更新算子。
+    """
+
     def __init__(self, force_model):
         self.force_model = force_model
 
     def apply(self, state, context, dt):
-        """
-        box_p' = G_stress + G_kin
+        """Update box momentum from stress and kinetic contributions.
+        从应力和动能贡献更新晶胞动量。
+        d_box_p/dt = G_stress + G_kin
         """
         self.force_model.compute(state, context)
         virial = self.force_model.results["virial"] + state.kinetic_virial
@@ -65,12 +84,17 @@ class BoxMomentumOp(Operator):
 
 
 class MomentumOp(Operator):
+    """Atomic momentum update operator for NPT ensemble.
+    NPT系综的原子动量更新算子。
+    """
+
     def __init__(self, force_model):
         self.force_model = force_model
 
     def apply(self, state, context, dt):
-        """
-        p' = F - (box_p + Tr(box_p)*I/3N)/W · p
+        """Update atomic momenta with box deformation coupling.
+        更新原子动量并考虑晶胞变形耦合。
+        dp/dt = F - (box_p + Tr(box_p)*I/3N)/W · p
         """
         self.force_model.compute(state, context)
         forces = self.force_model.results["forces"]
@@ -85,6 +109,9 @@ class MomentumOp(Operator):
 
 
 class MTTKNPT(Ensemble):
+    """NPT ensemble using MTTK (Martyna-Tobias-Tuckerman-Klein) algorithm.
+    使用MTTK算法的NPT系综。
+    """
 
     def __init__(self, t_tau, p_tau, force_model):
         self.force_model = force_model
@@ -104,6 +131,9 @@ class MTTKNPT(Ensemble):
         ]
 
     def get_conserved_energy(self, state, context):
+        """Calculate conserved quantity for MTTK NPT ensemble.
+        计算MTTK NPT系综的守恒量。
+        """
 
         kT = Constants.kB * context.target_temp  # eV
         self.force_model.compute(state, context)
@@ -129,6 +159,9 @@ class MTTKNPT(Ensemble):
         return float(conserved_energy)
 
     def get_pressure(self, state, context):
+        """Calculate instantaneous pressure from virial.
+        从维里定理计算瞬时压力。
+        """
         self.force_model.compute(state, context)
         virial = self.force_model.results["virial"]
         kinetic_virial = (
