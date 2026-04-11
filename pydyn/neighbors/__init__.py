@@ -10,7 +10,9 @@ using CUDA, enabling efficient force calculations for large molecular systems.
 """
 
 from .cuda_neighbor import CudaNeighborList
+from .small_cell_neighbor import SmallCellNeighborList
 
 __all__ = [
     "CudaNeighborList",
+    "SmallCellNeighborList",
 ]

@@ -30,6 +30,17 @@ from .forces.base import ForceModel
 from .forces.emt_force import EMTForceModel
 from .forces.hotpp_force import MiaoForceModel
 
+# Minimization classes
+from .minimize import (
+    Filter,
+    AtomFilter,
+    CellFilter,
+    SpinFilter,
+    CompositeFilter,
+    FIRE,
+    Minimization,
+)
+
 __all__ = [
     "Simulation",
     "State",
@@ -49,4 +60,11 @@ __all__ = [
     "ForceModel",
     "EMTForceModel",
     "MiaoForceModel",
+    "Filter",
+    "AtomFilter",
+    "CellFilter",
+    "SpinFilter",
+    "CompositeFilter",
+    "FIRE",
+    "Minimization",
 ]
